@@ -1,0 +1,65 @@
+{
+    "steps": [
+        {
+            "step_type": "pandalm",
+            "step_name": "PandaLM pairwise comparison mode",
+            "output_path": "./output_test/",
+            "dataset_config": {
+                "pandalm_data_path": "./assets/pandalm/testset-inference-v1.json"
+            },
+            "roles_config": {
+                "candidate_a": {
+                    "type": "remote_hf",
+                    "inference_kwargs": {
+                        "model_name": "llama-2-7b-chat-hf",
+                        "base_url": ["your-tgi-url"],
+                        "num_workers": 32,
+                        "trial_run": false,
+                        "dump_individual_rsp": true,
+                        "generation_config": {
+                            "max_new_tokens": 250
+                        }
+                    },
+                    "prompt_postprocessor_config": {
+                        "tokenizer_name_or_path": "/nvme/shared_ckpt/llama2-7b-chat-hf/"
+                    }
+                },
+                "candidate_b": {
+                    "type": "remote_hf",
+                    "inference_kwargs": {
+                        "model_name": "llama-2-13b-chat-hf",
+                        "base_url": ["your-tgi-url"],
+                        "num_workers": 16,
+                        "trial_run": false,
+                        "dump_individual_rsp": true,
+                        "generation_config": {
+                            "max_new_tokens": 250
+                        }
+                    },
+                    "prompt_postprocessor_config": {
+                        "tokenizer_name_or_path": "/nvme/shared_ckpt/llama2-7b-chat-hf/"
+                    }
+                },
+                "evaluator": {
+                    "type": "remote_hf",
+                    "inference_kwargs": {
+                        "model_name": "pandalm",
+                        "base_url": ["your-tgi-url"],
+                        "num_workers": 16,
+                        "trial_run": false,
+                        "dump_individual_rsp": true,
+                        "generation_config": {
+                            "max_new_tokens": 300
+                        }
+                    },
+                    "prompt_postprocessor_config": {
+                        "tokenizer_name_or_path": "/nvme/yzh/PandaLM"
+                    }
+                }
+            },
+            "prompter_config": {
+
+            }
+        }
+    ]
+}

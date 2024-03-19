@@ -1,0 +1,117 @@
+{
+    "results_output_path": "./results/interactive_example.json",
+    "steps": [
+        {
+            "step_type": "simple_multiple_choice",
+            "step_name": "ARC Challenge MCP, 25-shot, llama-2-7b-chat-hf",
+            "save_dataset": true,
+            "dataset_config": {
+                "type": "arc_challenge",
+                "dataset_kwargs": {
+                    "seed": 2,
+                    "split": "test",
+                    "name_or_path": "/hdd1/yzh/datasets/ai2_arc",
+                    "config_name": "ARC-Challenge",
+                    "fewshot_split": "train",
+                    "fewshot_num": 25,
+                    "multiple_choice_template_name": "test_1",
+                    "tokenizer_name_or_path": "/hdd1/yzh/ckpts/llama-2-70b-chat-hf",
+                    "system_prompt": "You are a helpful assistant that answers multiple choice problems correctly. You strictly follow the output format by outputing only the answer key without any explanation."
+                },
+                "augment_dataset_kwargs": {
+                    "num_instances": 4,
+                    "num_keeps": 1
+                }
+            },
+            "inference_config": {
+                "type": "remote_hf",
+                "output_path": "/hdd1/yzh/InteractiveEval/outputs",
+                "inference_kwargs": {
+                    "model_name": "llama-2-7b-chat-hf",
+                    "base_url": ["your-tgi-url"],
+                    "timeout": 10,
+                    "generation_config": {
+                        "stop_sequences": ["A", "B", "C", "D", "E"]
+                    },
+                    "num_workers": 32,
+                    "request_limit": 100000,
+                    "request_limit_period": 60,
+                    "trial_run": false,
+                    "dump_individual_rsp": true
+                }
+            },
+            "eval_config": {
+                "aggregate_mode": "vote",
+                "vote_threshold": 0.5
+            }
+        },
+        {
+            "step_type": "interactive_evaluation",
+            "step_name": "Interactive, llama-2-7b-chat vs llama-2-70b-chat",
+            "output_path": "/hdd1/yzh/InteractiveEval/outputs",
+            "roles_config": {
+                "candidate": {
+                    "type": "remote_hf",
+                    "inference_kwargs": {
+                        "model_name": "llama-2-7b-chat-hf",
+                        "base_url": ["your-tgi-url"],
+                        "timeout": 10,
+                        "num_workers": 32,
+                        "max_concurrency": 1,
+                        "request_limit": 100000,
+                        "request_limit_period": 60,
+                        "trial_run": false,
+                        "dump_individual_rsp": true,
+                        "generation_config": {
+                            "max_new_tokens": 250,
+                            "stop_sequences": ["\n\n"]
+                        }
+                    },
+                    "prompt_postprocessor_config": {
+                        "tokenizer_name_or_path": "/hdd1/yzh/ckpts/llama-2-70b-chat-hf"
+                    }
+                },
+                "interactor" : {
+                    "type": "remote_hf",
+                    "inference_kwargs": {
+                        "model_name": "llama-2-70b-chat-hf",
+                        "base_url": ["your-tgi-url"],
+                        "timeout": 60,
+                        "num_workers": 64,
+                        "request_limit": 100000,
+                        "request_limit_period": 60,
+                        "trial_run": false,
+                        "dump_individual_rsp": true,
+                        "generation_config": {
+                            "max_new_tokens": 250,
+                            "stop_sequences": ["\n\n"]
+                        }
+                    },
+                    "prompt_postprocessor_config": {
+                        "tokenizer_name_or_path": "/hdd1/yzh/ckpts/llama-2-70b-chat-hf"
+                    }
+                },
+                "evaluator": {
+                    "type": "remote_hf",
+                    "inference_kwargs": {
+                        "model_name": "llama-2-70b-chat-hf",
+                        "base_url": ["your-tgi-url"],
+                        "timeout": 60,
+                        "num_workers": 64,
+                        "request_limit": 100000,
+                        "request_limit_period": 60,
+                        "trial_run": false,
+                        "dump_individual_rsp": true,
+                        "generation_config": {
+                            "max_new_tokens": 300
+                        }
+                    },
+                    "prompt_postprocessor_config": {
+                        "tokenizer_name_or_path": "/hdd1/yzh/ckpts/llama-2-70b-chat-hf"
+                    }
+                }
+            }
+
+        }
+    ]
+}

@@ -1,0 +1,62 @@
+{
+    "steps": [
+        {
+            "step_type": "merge_dataset",
+            "step_name": "Merge Dataset",
+            "save_path": "./dev/datasets/merged_dataset_sft.json",
+            "merge_mode": "sft",
+            "dataset_configs": [
+                {
+                    "type": "arc_challenge",
+                    "dataset_kwargs": {
+                        "seed": 2,
+                        "split": "test",
+                        "name_or_path": "./dev/datasets/ai2_arc",
+                        "config_name": "ARC-Challenge",
+                        "system_prompt": "Answer the following problems with your intrinsic knowledge. Output only the answer without any explanation."
+                    }
+                },
+                {
+                    "type": "hellaswag",
+                    "dataset_kwargs": {
+                        "seed": 2,
+                        "split": "validation",
+                        "name_or_path": "./dev/datasets/hellaswag",
+                        "config_name": "default",
+                        "system_prompt": "Answer the following problems with your intrinsic knowledge. Output only the answer without any explanation."
+                    }
+                },
+                {
+                    "type": "mmlu",
+                    "dataset_kwargs": {
+                        "seed": 2,
+                        "split": "test",
+                        "name_or_path": "./dev/datasets/mmlu",
+                        "config_name": "all",
+                        "system_prompt": "Answer the following problems with your intrinsic knowledge. Output only the answer without any explanation."
+                    }
+                },
+                {
+                    "type": "ceval",
+                    "dataset_kwargs": {
+                        "seed": 2,
+                        "name_or_path": "./dev/datasets/ceval_all",
+                        "config_name": "main",
+                        "split": "val",
+                        "system_prompt": "Answer the following problems with your intrinsic knowledge. Output only the answer without any explanation."
+                    }
+                },
+                {
+                    "type": "arc_challenge",
+                    "dataset_kwargs": {
+                        "seed": 2,
+                        "name_or_path": "./dev/datasets/ai2_arc",
+                        "config_name": "ARC-Easy",
+                        "split": "test",
+                        "system_prompt": "Answer the following problems with your intrinsic knowledge. Output only the answer without any explanation."
+                    }
+                }
+            ]
+        }
+    ]
+}

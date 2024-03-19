@@ -1,0 +1,48 @@
+{
+    "steps": [
+        {
+            "step_type": "self_instruct",
+            "step_name": "Self Instruct",
+            "seed": 2,
+            "save_path": "./dev/datasets/gsm8k_diy_ex",
+            "batch_num": 10,
+            "generate_num": 500,
+            "generate_type": "qa",
+            "system_prompt":"You are an assistant proficient in mathematics. Next, you will help users generate some high quality linguistically diverse grade school math word problems.",
+            "dataset_config": {
+                "type": "gsm8k",
+                "dataset_kwargs": {
+                    "seed": 2,
+                    "split": "test",
+                    "name_or_path": "./dev/datasets/gsm8k",
+                    "config_name": "main",
+                    "multiple_choice_template_name": "qa"
+                }
+            },
+            "inference_config": {
+                "type": "openai",
+                "output_path": "./dev/outputs/",
+                "inference_kwargs": {
+                    "openai_model": "gpt-4",
+                    "openai_key": "your-openai-key",
+                    "openai_api_base": "",
+                    "openai_proxy": "",
+                    "openai_timeout": 480.0,
+                    "generation_config": {
+                        "max_tokens": 5000,
+                        "n": 1,
+                        "temperature": 1.0,
+                        "seed": 0
+                    },
+                    "num_workers": 8,
+                    "request_limit": 100000,
+                    "request_limit_period": 60,
+                    "trial_run": false,
+                    "dump_individual_rsp": true
+                }
+            },
+            "eval_config": {
+            }
+        }
+    ]
+}
