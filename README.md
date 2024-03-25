@@ -47,8 +47,7 @@ python run.py -c ./config/examples/arcc.json
 
 ## Docs
 
-[Coming soon]
-
+For more detailed usage, please refer to our [docs](https://freeeval.readthedocs.io/).
 
 ## Citation
 
