@@ -51,4 +51,13 @@ For more detailed usage, please refer to our [docs](https://freeeval.readthedocs
 
 ## Citation
 
-[Coming soon]
+✨ If you find our work helpful, please consider citing with:
+
+```bibtex
+@article{yu2024freeeval,
+  title={FreeEval: A Modular Framework for Trustworthy and Efficient Evaluation of Large Language Models},
+  author={Yu, Zhuohao and Gao, Chang and Yao, Wenjin and Wang, Yidong and Zeng, Zhengran and Ye, Wei and Wang, Jindong and Zhang, Yue and Zhang, Shikun},
+  journal={arXiv preprint arXiv:2404.06003},
+  year={2024}
+}
+```
