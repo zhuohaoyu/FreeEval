@@ -1,7 +1,8 @@
+from freeeval.datasets import load_eval_dataset
 from freeeval.models import load_inference_function
 from freeeval.steps.base_step import BaseStep
 from freeeval.utils import calculate_inference_endpoint_hash
-from typing import Optional, List, Dict
+from typing import Optional, Union, List, Dict
 from collections import Counter
 
 from hashlib import md5
@@ -9,9 +10,181 @@ from base64 import urlsafe_b64encode
 from tqdm import tqdm
 import logging, os, json, codecs
 import jsonlines
+import math
 
 from freeeval.prompts import PromptPostprocessor, TriloguePrompter
-from freeeval.datasets.dialogues import Triologue, KIEVAL_EVALUATOR_METRICS
+from freeeval.utils import parse_json
+
+EVALUATOR_METRICS = ["accuracy", "logic", "relevance", "coherence", "conciseness"]
+
+def weighted_mean(scores):
+    score_mapper = {0: 0.0, 1: 1.0, 2: 3.0, 3: 7.0, 4: 10.0 }
+    weights = [math.exp(-0.2 * index) for index in range(len(scores))]
+    return (
+        sum(score_mapper[score] * weight for score, weight in zip(scores, weights))
+        / sum(weights)
+        * 10.0
+    )
+
+
+class Conversation:
+    def __init__(
+        self, uuid: str, messages: List[Dict] = [], random_seed: Optional[int] = 0
+    ) -> None:
+        self.uuid = uuid
+        self.messages = messages
+        self.random_seed = random_seed
+        self.prompt = None
+        self.stop_interaction = False
+
+    def __len__(self) -> int:
+        return len(self.messages)
+
+    def __getitem__(self, key):
+        return getattr(self, key)
+
+    def __setitem__(self, key, value):
+        setattr(self, key, value)
+
+    def add_message(self, role: str, content: str) -> None:
+        self.messages.append({"content": content, "role": role})
+
+
+class Triologue(Conversation):
+    def __init__(
+        self,
+        uuid: str,
+        init_messages: Dict,
+        random_seed: Optional[int] = 0,
+    ):
+        super().__init__(uuid, messages=[], random_seed=random_seed)
+
+        self.all_messages = []  # no system prompt
+        self.current_party = None
+
+        self.role_messages = init_messages
+
+        self.evaluation_results = []
+        self.aggregated_result = None
+
+    def parse_evaluation_result(self, content: str):
+        if self.stop_interaction:
+            return None
+        j = parse_json(content)
+        for key in EVALUATOR_METRICS:
+            if key not in j:
+                j[key] = {"comment": "", "score": None}
+            if "comment" not in j[key]:
+                j[key]["comment"] = ""
+            if "score" not in j[key]:
+                j[key]["score"] = None
+        if "comment" not in j:
+            j["comment"] = ""
+        if "overall_score" not in j:
+            j["overall_score"] = None
+        if "stop_conversation" not in j:
+            j["stop_conversation"] = False
+
+        if j["stop_conversation"]:
+            self.stop_interaction = True
+
+        self.evaluation_results.append(j)
+
+        return j
+
+    def aggregate_result(self):
+        if len(self.evaluation_results) == 0:
+            return None
+        if self.aggregated_result is not None:
+            return self.aggregated_result
+        j = {}
+        for key in EVALUATOR_METRICS:
+            values = [e.get(key, None) for e in self.evaluation_results]
+            values = [v.get("score", None) for v in values if v is not None]
+            values = [v for v in values if v is not None]
+            values_normalized = []
+            for v in values:
+                if isinstance(v, str):
+                    try:
+                        v = float(v)
+                        if v >= 0 and v <= 5:
+                            values_normalized.append(v)
+                    except:
+                        continue
+                elif v >= 0 and v <= 5:
+                    values_normalized.append(v)
+            values = values_normalized
+            if len(values) == 0:
+                j[key] = None
+            else:
+                kieval_score = weighted_mean(values)
+                try:
+                    j[key] = {
+                        "min": min(values),
+                        "max": max(values),
+                        "mean": sum(values) / len(values),
+                        "kieval_score": kieval_score,
+                    }
+                except:
+                    print(values)
+                    raise ValueError("Error when aggregating results.")
+        values = [e.get("overall_score", None) for e in self.evaluation_results]
+        values = [v for v in values if v is not None]
+        kieval_score = weighted_mean(values)
+        if len(values) == 0:
+            j["overall_score"] = None
+        else:
+            j["overall_score"] = {
+                "min": min(values),
+                "max": max(values),
+                "mean": sum(values) / len(values),
+                "kieval_score": kieval_score,
+            }
+        self.aggregated_result = j
+        return j
+
+    def set_party(self, party: str) -> None:
+        if party not in ["candidate", "interactor", "evaluator"]:
+            raise ValueError(
+                "Party role not recognized. Valid roles are 'candidate', 'interactor', 'evaluator'."
+            )
+        self.current_party = party
+        self.messages = self.role_messages[party]
+
+    def add_message(self, party: str, content: str, prompter: TriloguePrompter) -> None:
+        self.all_messages.append({"content": content, "role": party})
+        if party == "candidate":
+            self.role_messages["candidate"].append(
+                {"role": "assistant", "content": content}
+            )
+            self.role_messages["interactor"].append(
+                {"role": "user", "content": content}
+            )
+
+            evaluator_user_messages = self.all_messages[
+                -2:
+            ]  # last two messages are from interactor and candidate
+            assert (
+                evaluator_user_messages[0]["role"] == "interactor"
+            ), f"Last message is not from interactor: {evaluator_user_messages[0]}"
+            evaluator_user_prompt = prompter.apply_evaluator_user_prompt(
+                interactor_content=evaluator_user_messages[0]["content"],
+                candidate_content=evaluator_user_messages[1]["content"],
+            )
+            self.role_messages["evaluator"].append(
+                {"role": "user", "content": evaluator_user_prompt}
+            )
+
+        elif party == "interactor":
+            self.role_messages["interactor"].append(
+                {"role": "assistant", "content": content}
+            )
+            self.role_messages["candidate"].append({"role": "user", "content": content})
+
+        elif party == "evaluator":
+            self.role_messages["evaluator"].append(
+                {"role": "assistant", "content": content}
+            )
 
 
 class InteractiveEvaluationStep(BaseStep):
@@ -158,7 +331,7 @@ class InteractiveEvaluationStep(BaseStep):
 
     def aggregate_single_round_results(self, round_results: List[Dict]):
         ret = {}
-        for key in KIEVAL_EVALUATOR_METRICS:
+        for key in EVALUATOR_METRICS:
             values = [e.get(key, None) for e in round_results]
             values = [v.get("score", None) for v in values if v is not None]
             values = [v for v in values if v is not None]
@@ -244,7 +417,7 @@ class InteractiveEvaluationStep(BaseStep):
                 if res[key] is None:
                     value = None
                 else:
-                    value = res[key].get("mean", None)
+                    value = res[key].get("kieval_score", None)
                 if value is not None:
                     aggregated_results[key].append(value)
 
@@ -258,8 +431,7 @@ class InteractiveEvaluationStep(BaseStep):
                 "nonempty_values": len(aggregated_results[key]),
                 "mean": sum(aggregated_results[key]) / len(aggregated_results[key]),
                 "min": min(aggregated_results[key]),
-                "max": max(aggregated_results[key]),
-                "counter": value_counter,
+                "max": max(aggregated_results[key])
             }
         self.evaluation_results["overall"] = ret
         self.evaluation_results["hash"] = self.step_hash
@@ -279,7 +451,7 @@ class InteractiveEvaluationStep(BaseStep):
             role: role_name_mapper(config) for role, config in self.roles_config.items()
         }
         self.logger.info(
-            f"Overall evaluation results:\n{json.dumps(ret, indent=2, ensure_ascii=False)}"
+            f"KIEval scores:\n{json.dumps(ret, indent=2, ensure_ascii=False)}"
         )
 
     def preprocess(self, context):
