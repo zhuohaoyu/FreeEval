@@ -1,6 +1,6 @@
 from freeeval.models import load_inference_function
 from freeeval.steps.base_step import BaseStep
-from freeeval.utils import calculate_inference_endpoint_hash
+from freeeval.utils import calculate_inference_endpoint_hash, get_model_nicename
 from freeeval.datasets.instructions import Instruction, InstructionDataset
 from typing import Optional, List, Dict, Union
 from collections import Counter
@@ -15,7 +15,7 @@ from freeeval.prompts import PromptPostprocessor
 
 
 class MTBenchStep(BaseStep):
-    """Evaluate candidate model with another model, interactively."""
+    """MT-Bench: https://arxiv.org/abs/2306.05685"""
 
     type = "mt_bench"
 
@@ -215,9 +215,9 @@ class MTBenchStep(BaseStep):
 
             if match:
                 rating = match.group(1)
-                inst.rating = int(rating)
+                inst.score = int(rating)
             else:
-                inst.rating = None
+                inst.score = None
                 empty_ratings += 1
 
         if empty_ratings > 0:
@@ -226,9 +226,9 @@ class MTBenchStep(BaseStep):
         self.evaluation_results = {
             "average_score": sum(
                 [
-                    inst.rating
+                    inst.score
                     for inst in self.instruction_dataset.instructions
-                    if inst.rating is not None
+                    if inst.score is not None
                 ]
             )
             / len(self.instruction_dataset.instructions),
@@ -248,12 +248,49 @@ class MTBenchStep(BaseStep):
             detail_path = os.path.join(
                 self.output_path, self.output_path_nicename(), "interact_details.json"
             )
-            self.logger.info(f"Saving interact details to {detail_path}")
+            visualization_path = os.path.join(
+                self.output_path, self.output_path_nicename(), "visualization_results.json"
+            )
+            self.logger.info(f"Saving visualization details to {visualization_path}")
             context.interactive_details = self.instruction_dataset
             context.predictions[(self.step_type, self.step_name)] = (
                 self.instruction_dataset
             )
+            visualization_results = []
+            for inst in self.instruction_dataset:
+                input_text = inst.input
+                candidate_output = inst.history[0]['content']
+                evaluator_output = inst.output
+                dic = {
+                        "uuid": inst.uuid,
+                        "evaluation_result": inst.score,
+                        "context": input_text,
+                        "output": candidate_output,
+                        "evaluator_output": evaluator_output,
+                        "extra": json.dumps(inst.extra, indent=2, ensure_ascii=False),
+                    }
+            
+                visualization_results.append(dic)
 
+            safe_config = context.get_safe_config()
+
+            visualization_results = {
+                "overview": {
+                    "Evaluation Method": "MT-Bench (Single-Answer Grading Mode)",
+                    "Avg. MT-Bench Score": self.evaluation_results["average_score"],
+                    "Evaluator Model": get_model_nicename(self.roles_config["evaluator"]),
+                    "Candidate Model": get_model_nicename(self.roles_config["candidate"]),
+                    "Total Instructions": self.evaluation_results["num_instructions"],
+                },
+                "metadata": {
+                    'config': safe_config,
+                },
+                "results": visualization_results,
+            }
+            
+            with codecs.open(visualization_path, "w", "utf-8") as f:
+                json.dump(visualization_results, f, indent=2, ensure_ascii=False)
+            
             with codecs.open(detail_path, "w", "utf-8") as f:
                 json.dump(
                     [t.__dict__ for t in self.instruction_dataset],

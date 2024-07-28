@@ -74,6 +74,8 @@ if __name__ == "__main__":
 
     if 'run_name' not in config:
         config['run_name'] = os.path.split(args.config)[-1].replace('.', '_')
+    if 'log_path' not in config:
+        config['log_path'] = log_filename
 
     # log hostname, user, python environment variables, ... to log file
     logger.info(f'Config: \n{json.dumps(config, indent=2, ensure_ascii=False)}')

@@ -79,3 +79,24 @@ def calculate_inference_endpoint_hash(
 
     url_safe_hash = urlsafe_b64encode(hash_digest).rstrip(b"=").decode("utf-8")
     return url_safe_hash
+
+
+def get_model_nicename(conf):
+    if "model_name" in conf:
+        return conf["model_name"]
+    
+    if "type" in conf and "inference_kwargs" in conf:
+        if conf["type"] == "openai":
+            return "API: " + conf["inference_kwargs"]["openai_model"]
+        elif conf["type"] == "remote_hf":
+            if "model_name" in conf["inference_kwargs"]:
+                return "Remote: " + conf["inference_kwargs"]["model_name"]
+            else:
+                return "Remote: " + conf["inference_kwargs"]["base_url"]
+        elif conf["type"] == "local_hf":
+            if "model_name" in conf["inference_kwargs"]:
+                return "Local: " + conf["inference_kwargs"]["model_name"]
+            else:
+                return "Local: " + conf["inference_kwargs"]["model_path"]
+    
+    return "Unknown model"

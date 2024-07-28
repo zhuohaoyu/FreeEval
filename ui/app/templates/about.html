@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}About - FreeEval Visualizer{% endblock %}
+
+{% block content %}
+<div class="mx-auto p-5 bg-white rounded-lg shadow dark:bg-gray-800">
+    <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-4">About FreeEval Visualizer</h1>
+    <p class="text-gray-700 dark:text-gray-300 mb-4">
+        FreeEval Visualizer is a tool designed to help you evaluate and visualize the performance of large language models. It provides a user-friendly interface for comparing model outputs, scoring individual outputs, and analyzing results based on various metrics.
+    </p>
+    <h2 class="text-2xl font-semibold text-gray-900 dark:text-white mb-2">Features</h2>
+    <ul class="list-disc list-inside text-gray-700 dark:text-gray-300 mb-4">
+        <li>Pairwise Comparison: Compare outputs from different models and determine which one performs better.</li>
+        <li>Direct Scoring: Score individual outputs based on predefined criteria.</li>
+        <li>Matching: Evaluate outputs based on their similarity to reference outputs using metrics like accuracy, BLEU, and BERTScore.</li>
+        <li>Comprehensive Analysis: Visualize the distribution of evaluation results and analyze correlations between various metrics.</li>
+        <li>Case Studies: Examine individual cases in detail to understand model performance on specific inputs.</li>
+    </ul>
+    <h2 class="text-2xl font-semibold text-gray-900 dark:text-white mb-2">Contact</h2>
+    <p class="text-gray-700 dark:text-gray-300">
+        For more information or to report issues, please contact us at <a href="mailto:zhuohaoyu1228@gmail.com" class="text-blue-600 dark:text-blue-400">zhuohaoyu1228@gmail.com</a>.
+    </p>
+</div>
+{% endblock %}

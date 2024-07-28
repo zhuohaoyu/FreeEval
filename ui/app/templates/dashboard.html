@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}FreeEval Visualizer{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 gap-4 mb-4">
+    
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+        <div class="w-full p-4 bg-white border border-gray-200 rounded-lg shadow sm:p-6 dark:bg-gray-800 dark:border-gray-700">
+            <h2 class="mb-3 text-lg font-semibold text-gray-900 md:text-xl dark:text-white">
+                Overview
+            </h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">
+            {% for key, value in overview.items() %}
+            <div class="rounded-lg border-gray-300 dark:border-gray-600 p-2">
+                <h3 class="text-base font-semibold text-gray-900 dark:text-white mb-1">{{ key }}</h3>
+                <p class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap"> {% autoescape false %}{{ value }}{% endautoescape %}</p>
+            </div>
+            {% endfor %}
+            </div>
+        </div>
+        <!-- ECharts Chart -->
+        <div class="w-full p-4 bg-white border border-gray-200 rounded-lg shadow sm:p-6 dark:bg-gray-800 dark:border-gray-700">
+            <h2 class="mb-3 text-lg font-semibold text-gray-900 md:text-xl dark:text-white">
+                Result Distribution
+            </h2>
+            <div id="evaluationChart" style="width: 100%; height: 400px;"></div>
+        </div>
+    </div>
+    
+    <div class="w-full p-4 bg-white border border-gray-200 rounded-lg shadow sm:p-6 dark:bg-gray-800 dark:border-gray-700">
+        <h2 class="mb-3 text-lg font-semibold text-gray-900 md:text-xl dark:text-white">
+            Details
+        </h2>
+        {% for key, value in metadata.items() %}
+        <div class="border-2 border-dashed rounded-lg border-gray-300 dark:border-gray-600 p-4">
+            <h3 class="text-base font-semibold text-gray-900 dark:text-white mb-2">{{ key }}</h3>
+            <p class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap"> {% autoescape false %}{{ value }}{% endautoescape %}</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.2/dist/echarts.min.js"></script>
+<script>
+    // ECharts initialization
+    var evaluationChart = echarts.init(document.getElementById('evaluationChart'));
+    var chartData = {{ chart_data | tojson | safe }};
+    console.log("Chart Data:", chartData); // Debug print to verify data in JavaScript
+    evaluationChart.setOption(chartData);
+
+    // Make ECharts responsive
+    window.addEventListener('resize', function() {
+        evaluationChart.resize();
+    });
+</script>
+{% endblock %}

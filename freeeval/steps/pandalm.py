@@ -1,6 +1,6 @@
 from freeeval.models import load_inference_function
 from freeeval.steps.base_step import BaseStep
-from freeeval.utils import calculate_inference_endpoint_hash
+from freeeval.utils import calculate_inference_endpoint_hash, get_model_nicename
 from freeeval.datasets.instructions import Instruction, InstructionDataset
 from typing import Optional, List, Dict, Union
 from collections import Counter
@@ -283,7 +283,10 @@ class PandaLMStep(BaseStep):
             detail_path = os.path.join(
                 self.output_path, self.output_path_nicename(), "interact_details.json"
             )
-            self.logger.info(f"Saving interact details to {detail_path}")
+            visualization_path = os.path.join(
+                self.output_path, self.output_path_nicename(), "visualization_results.json"
+            )
+            self.logger.info(f"Saving visualization details to {visualization_path}")
             context.interactive_details = self.instruction_dataset
             context.predictions[(self.step_type, self.step_name)] = (
                 self.instruction_dataset
@@ -296,6 +299,27 @@ class PandaLMStep(BaseStep):
                     indent=2,
                     ensure_ascii=False,
                 )
+            safe_config = context.get_safe_config()
+            visualization_results = {
+                "overview": {
+                    "Evaluation Method": "PandaLM <br>(Pairwise Comparison)",
+                    "Evaluator Model": get_model_nicename(self.roles_config["evaluator"]),
+                    "Candidate Model A": get_model_nicename(self.roles_config["candidate_a"]),
+                    "Candidate Model B": get_model_nicename(self.roles_config["candidate_b"]),
+                    "# Wins (A)": self.evaluation_results['model_1_wins'],
+                    '# Wins (B)': self.evaluation_results['model_2_wins'],
+                    '# Ties': self.evaluation_results['ties'],
+                    "Avg. Win Rate (A)": self.evaluation_results["model_1_wins"] / self.evaluation_results["num_instructions"],
+                    "Total Instructions": self.evaluation_results["num_instructions"],
+                },
+                "metadata": {
+                    'config': safe_config,
+                },
+                "results": visualization_results,
+            }
+            
+            with codecs.open(visualization_path, "w", "utf-8") as f:
+                json.dump(visualization_results, f, indent=2, ensure_ascii=False)
         else:
             context.predictions[(self.step_type, self.step_name)] = None
             del self.instruction_dataset

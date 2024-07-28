@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block title %}Case Study - FreeEval Visualizer{% endblock %}
+
+{% block content %}
+
+
+<div class="grid grid-cols-1 sm:grid-cols-1 gap-4 mb-4">
+    <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-4">Case View</h1>
+    {% for key, value in case_data.items() %}
+    <div class="border-2 border-dashed rounded-lg border-gray-300 dark:border-gray-600 p-4">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">{{ key }}</h3>
+        <p class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap"> {% autoescape false %}{{ value }}{% endautoescape %}</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

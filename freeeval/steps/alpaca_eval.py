@@ -1,6 +1,6 @@
 from freeeval.models import load_inference_function
 from freeeval.steps.base_step import BaseStep
-from freeeval.utils import calculate_inference_endpoint_hash
+from freeeval.utils import calculate_inference_endpoint_hash, get_model_nicename
 from freeeval.datasets.instructions import Instruction, InstructionDataset
 from typing import Optional, List, Dict, Union
 from collections import Counter
@@ -313,7 +313,57 @@ class AlpacaEvalStep(BaseStep):
             detail_path = os.path.join(
                 self.output_path, self.output_path_nicename(), "interact_details.json"
             )
-            self.logger.info(f"Saving interact details to {detail_path}")
+            visualization_path = os.path.join(
+                self.output_path, self.output_path_nicename(), "visualization_results.json"
+            )
+            self.logger.info(f"Saving visualization details to {visualization_path}")
+            visualization_results = []
+            for inst in self.instruction_dataset:
+                input_text = inst.input
+                evaluator_output = inst.output
+                output_1 = inst.history[0]["content"]
+                output_2 = inst.history[1]["content"]
+
+                if inst.winner == 1:
+                    evaluation_result = 1
+                elif inst.winner == 2:
+                    evaluation_result = 2
+                else:
+                    evaluation_result = 0
+                dic = {
+                        "uuid": inst.uuid,
+                        "evaluation_result": evaluation_result,
+                        "context": input_text,
+                        "output_1": output_1,
+                        "output_2": output_2,
+                        "evaluator_output": evaluator_output,
+                        "extra": json.dumps(inst.extra, indent=2, ensure_ascii=False),
+                    }
+            
+                visualization_results.append(dic)
+
+            safe_config = context.get_safe_config()
+
+            visualization_results = {
+                "overview": {
+                    "Evaluation Method": "AlpacaEval <br>(Pairwise Comparison)",
+                    "Evaluator Model": get_model_nicename(self.roles_config["evaluator"]),
+                    "Candidate Model A": get_model_nicename(self.roles_config["candidate_a"]),
+                    "Candidate Model B": get_model_nicename(self.roles_config["candidate_b"]),
+                    "# Wins (A)": self.evaluation_results['model_1_wins'],
+                    '# Wins (B)': self.evaluation_results['model_2_wins'],
+                    "Avg. Win Rate (A)": self.evaluation_results["model_1_wins"] / self.evaluation_results["num_instructions"],
+                    "Total Instructions": self.evaluation_results["num_instructions"],
+                },
+                "metadata": {
+                    'config': safe_config,
+                },
+                "results": visualization_results,
+            }
+            
+            with codecs.open(visualization_path, "w", "utf-8") as f:
+                json.dump(visualization_results, f, indent=2, ensure_ascii=False)
+
             context.interactive_details = self.instruction_dataset
             context.predictions[(self.step_type, self.step_name)] = (
                 self.instruction_dataset
