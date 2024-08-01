@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}Case Annotation - FreeEval Visualizer{% endblock %}
+
+{% block content %}
+<div class="mx-auto p-5 bg-white rounded-lg shadow dark:bg-gray-800 mb-20">
+    <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-4">Case Annotation</h1>
+    {% for key, value in case_data.items() %}
+        {% if not (settings.hide_scores and key in ['evaluation_result', 'evaluator_output']) %}
+        <div class="border-2 border-dashed rounded-lg border-gray-300 dark:border-gray-600 p-4 mb-4">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">{{ key }}</h3>
+            <p class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{% autoescape false %}{{ value }}{% endautoescape %}</p>
+        </div>
+        {% endif %}
+    {% endfor %}
+</div>
+
+<div id="annotation-controls" class="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 p-4 shadow-lg" data-session-name="{{ session_name }}" data-case-uuid="{{ case_data.uuid }}" data-is-swapped="{{ is_swapped }}">
+    <div class="container mx-auto flex justify-center items-center">
+        {% if settings.evaluation_type == 'pairwise' %}
+            {% for option in settings.options %}
+            <button class="annotation-option text-white bg-blue-700 hover:bg-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-300 font-medium rounded-full text-sm px-5 py-2.5 text-center me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800" data-option="{{ option }}">{{ option }}</button>
+            {% endfor %}
+        {% elif settings.evaluation_type == 'scoring' %}
+            {% if settings.scoring_type == 'discrete' %}
+                {% for score in settings.allowed_scores %}
+                <button class="annotation-option text-white bg-blue-700 hover:bg-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-300 font-medium rounded-full text-sm px-5 py-2.5 text-center me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">{{ score }}</button>
+                {% endfor %}
+            {% else %}
+            <input type="number" id="score-input" min="{{ settings.min_score }}" max="{{ settings.max_score }}" class="border rounded-full px-4 py-2 mr-2">
+            <button id="submit-score" class="text-white bg-blue-700 hover:bg-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-300 font-medium rounded-full text-sm px-5 py-2.5 text-center me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">Submit Score</button>
+            {% endif %}
+        {% endif %}
+        
+        <!-- Next button -->
+        <a href="{{ url_for('main.case_annotation', session_name=session_name, uuid=next_uuid) }}" class="text-white bg-green-500 hover:bg-green-600 focus:outline-none focus:ring-4 focus:ring-green-300 font-medium rounded-full text-sm px-5 py-2.5 text-center ml-4 dark:bg-green-600 dark:hover:bg-green-700 dark:focus:ring-green-800">
+            Next Case
+            <svg class="w-4 h-4 inline-block ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+            </svg>
+        </a>
+    </div>
+</div>
+{% endblock %}

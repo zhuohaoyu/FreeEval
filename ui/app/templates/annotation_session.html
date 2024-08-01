@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}Human Evaluation Session: {{ session_name }} - FreeEval Visualizer{% endblock %}
+
+{% block content %}
+<div class="mx-auto p-5 bg-white rounded-lg shadow dark:bg-gray-800">
+    <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-4">Human Evaluation Session: {{ session_name }}</h1>
+    
+    <!-- Progress Bar -->
+    <div class="mb-6">
+        <div class="flex justify-between mb-1">
+            <span class="text-base font-medium text-blue-700 dark:text-white">Annotation Progress</span>
+            <span class="text-sm font-medium text-blue-700 dark:text-white">
+                {{ annotated_uuids|length }} / {{ cases|length }} ({{ (annotated_uuids|length / cases|length * 100)|round|int }}%)
+            </span>
+        </div>
+        <div class="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
+            <div class="bg-blue-600 h-2.5 rounded-full" style="width: {{ (annotated_uuids|length / cases|length * 100)|round|int }}%"></div>
+        </div>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                <tr>
+                    <th scope="col" class="px-4 py-3">UUID</th>
+                    <th scope="col" class="px-4 py-3">Context</th>
+                    <th scope="col" class="px-4 py-3">Status</th>
+                    <th scope="col" class="px-4 py-3">
+                        <span class="sr-only">Annotate</span>
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for case in cases %}
+                <tr class="border-b dark:border-gray-700">
+                    <th scope="row" class="px-4 py-3 font-medium text-gray-900 whitespace-nowrap dark:text-white">{{ case.uuid }}</th>
+                    <td class="px-4 py-3">{{ case.context[:50] }}...</td>
+                    <td class="px-4 py-3">
+                        {% if case.uuid in annotated_uuids %}
+                        <span class="bg-green-100 text-green-800 text-xs font-medium mr-2 px-2.5 py-0.5 rounded dark:bg-green-900 dark:text-green-300">Done</span>
+                        {% else %}
+                        <span class="bg-yellow-100 text-yellow-800 text-xs font-medium mr-2 px-2.5 py-0.5 rounded dark:bg-yellow-900 dark:text-yellow-300">Pending</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3 flex items-center justify-end">
+                        <a href="{{ url_for('main.case_annotation', session_name=session_name, uuid=case.uuid) }}" target="_blank" class="flex items-center p-2 text-sm font-medium text-center text-gray-800 dark:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <svg class="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                            </svg>
+                            <span class="sr-only">Annotate</span>
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="mt-8">
+        <h2 class="text-2xl font-semibold text-gray-900 dark:text-white mb-2">Instructions</h2>
+        <p class="text-gray-700 dark:text-gray-300 mb-4">
+            Click on the annotate icon next to each case to open the annotation page in a new tab. 
+            The status will update automatically to show which cases have been annotated.
+        </p>
+    </div>
+</div>
+
+<script>
+    // Refresh the page every 30 seconds
+    setTimeout(function(){
+        location.reload();
+    }, 30000);
+</script>
+{% endblock %}
