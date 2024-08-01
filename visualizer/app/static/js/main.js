@@ -62,35 +62,153 @@ document.addEventListener('DOMContentLoaded', (event) => {
     }
 
     // Human Evaluation Session Creation
-    const humanEvaluationForm = document.querySelector('#human-evaluation-form');
-    if (humanEvaluationForm) {
-        humanEvaluationForm.addEventListener('submit', function (e) {
+    const sessionNameForm = document.querySelector('#session-name-form');
+    const settingsForm = document.querySelector('#settings-form');
+    const createLoadButtonContainer = document.querySelector('#create-load-button-container');
+
+    if (sessionNameForm) {
+        sessionNameForm.addEventListener('submit', function (e) {
             e.preventDefault();
-            const formData = new FormData(this);
-            fetch('/human-evaluation', {
+            const sessionName = document.querySelector('#session_name').value;
+            
+            fetch('/check-session', {
                 method: 'POST',
-                body: formData
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ session_name: sessionName }),
             })
-                .then(response => {
-                    if (response.redirected) {
-                        window.location.href = response.url;
-                    } else {
-                        return response.json().then(data => ({ data, response }));
-                    }
-                })
-                .then(result => {
-                    if (result && result.data) {
-                        if (result.data.success) {
-                            window.location.href = result.data.redirect;
-                        } else {
-                            console.error('Unexpected response:', result.data);
-                            alert('Error creating or loading session. Please try again.');
+            .then(response => response.json())
+            .then(data => {
+                if (data.exists) {
+                    window.location.href = `/annotation-session/${sessionName}`;
+                } else {
+                    // Hide the "Create or Load Session" button
+                    createLoadButtonContainer.classList.add('hidden');
+
+                    // Show settings form
+                    settingsForm.innerHTML = `
+                            <form id="human-evaluation-form" method="POST" action="/human-evaluation" class="space-y-8">
+                                <input type="hidden" name="session_name" value="${sessionName}">
+                                <div>
+                                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-300">Evaluation Type</label>
+                                    <div class="flex items-center mb-4">
+                                        <input type="radio" id="pairwise" name="evaluation_type" value="pairwise" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" required>
+                                        <label for="pairwise" class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">Pairwise Comparison</label>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <input type="radio" id="scoring" name="evaluation_type" value="scoring" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" required>
+                                        <label for="scoring" class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">Scoring</label>
+                                    </div>
+                                </div>
+                                <div id="pairwise_options" class="hidden space-y-4">
+                                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-300">Allowed Choices</label>
+                                    <div class="space-y-2">
+                                        <label class="inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" name="pairwise_options" value="Response 1 is better" class="sr-only peer" checked>
+                                            <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:w-5 after:h-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                                            <span class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300">Response 1 is better</span>
+                                        </label>
+                                        <label class="inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" name="pairwise_options" value="Response 2 is better" class="sr-only peer" checked>
+                                            <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:w-5 after:h-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                                            <span class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300">Response 2 is better</span>
+                                        </label>
+                                        <label class="inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" name="pairwise_options" value="Tie" class="sr-only peer">
+                                            <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:w-5 after:h-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                                            <span class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300">Tie</span>
+                                        </label>
+                                        <label class="inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" name="pairwise_options" value="Both Good" class="sr-only peer">
+                                            <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:w-5 after:h-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                                            <span class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300">Both Good</span>
+                                        </label>
+                                        <label class="inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" name="pairwise_options" value="Both Bad" class="sr-only peer">
+                                            <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:w-5 after:h-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                                            <span class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300">Both Bad</span>
+                                        </label>
+                                        <label class="inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" name="pairwise_options" value="Not Sure" class="sr-only peer">
+                                            <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:w-5 after:h-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                                            <span class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300">Not Sure</span>
+                                        </label>
+                                    </div>
+                                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-300">Debias</label>
+                                    <label class="inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" name="random_swap" class="sr-only peer">
+                                        <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:w-5 after:h-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                                        <span class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300">Randomly swap order of responses</span>
+                                    </label>
+                                </div>
+                                <div id="scoring_options" class="hidden space-y-4">
+                                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-300">Scoring Type</label>
+                                    <div class="flex items-center mb-4">
+                                        <input type="radio" id="discrete" name="scoring_type" value="discrete" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                                    <label for="discrete" class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">Discrete Scores</label>
+                                </div>
+                                <div class="flex items-center">
+                                    <input type="radio" id="continuous" name="scoring_type" value="continuous" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                                    <label for="continuous" class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">Continuous Range</label>
+                                </div>
+                                <div id="discrete_scores" class="hidden">
+                                    <div class="relative z-0 w-full mb-5 group">
+                                        <input type="text" name="allowed_scores" id="allowed_scores" class="block py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 dark:focus:border-blue-500 focus:outline-none focus:ring-0 focus:border-blue-600 peer" placeholder=" " />
+                                        <label for="allowed_scores" class="peer-focus:font-medium absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:start-0 rtl:peer-focus:translate-x-1/4 peer-focus:text-blue-600 peer-focus:dark:text-blue-500 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6">Allowed Scores (comma-separated, e.g.: 1,2,3)</label>
+                                    </div>
+                                </div>
+                                <div id="continuous_range" class="hidden space-y-4">
+                                    <div class="relative z-0 w-full mb-5 group">
+                                        <input type="number" name="min_score" id="min_score" class="block py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 dark:focus:border-blue-500 focus:outline-none focus:ring-0 focus:border-blue-600 peer" placeholder=" " />
+                                        <label for="min_score" class="peer-focus:font-medium absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:start-0 rtl:peer-focus:translate-x-1/4 peer-focus:text-blue-600 peer-focus:dark:text-blue-500 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6">Minimum Score</label>
+                                    </div>
+                                    <div class="relative z-0 w-full mb-5 group">
+                                        <input type="number" name="max_score" id="max_score" class="block py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 dark:focus:border-blue-500 focus:outline-none focus:ring-0 focus:border-blue-600 peer" placeholder=" " />
+                                        <label for="max_score" class="peer-focus:font-medium absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:start-0 rtl:peer-focus:translate-x-1/4 peer-focus:text-blue-600 peer-focus:dark:text-blue-500 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6">Maximum Score</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <label class="inline-flex items-center cursor-pointer">
+                                <input type="checkbox" name="hide_scores" class="sr-only peer" checked>
+                                <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:w-5 after:h-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                                <span class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300">Hide evaluation results</span>
+                            </label>
+                            <div class="flex justify-center">
+                                <button type="submit" class="text-white bg-blue-700 hover:bg-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-300 font-medium rounded-full text-sm px-5 py-2.5 text-center me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">Create Annotation Session</button>
+                            </div>
+                        </form>
+                    `;
+                        settingsForm.classList.remove('hidden');
+
+                        // Add event listener for the new form
+                        const humanEvaluationForm = document.querySelector('#human-evaluation-form');
+                        if (humanEvaluationForm) {
+                            humanEvaluationForm.addEventListener('submit', function (e) {
+                                e.preventDefault();
+                                const formData = new FormData(this);
+                                fetch('/human-evaluation', {
+                                    method: 'POST',
+                                    body: formData
+                                })
+                                .then(response => {
+                                    if (response.redirected) {
+                                        window.location.href = response.url;
+                                    }
+                                })
+                                .catch(error => {
+                                    console.error('Error:', error);
+                                });
+                            });
                         }
+
+                        // Trigger the event listeners setup in the HTML
+                        const event = new Event('DOMContentLoaded');
+                        document.dispatchEvent(event);
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    // Don't show an alert here, as the redirect might have already occurred
                 });
         });
     }

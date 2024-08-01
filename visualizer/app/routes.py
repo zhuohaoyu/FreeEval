@@ -1,9 +1,16 @@
-from flask import Blueprint, render_template, request, current_app, jsonify, url_for, redirect
+from flask import Blueprint, render_template, request, current_app, jsonify, url_for, redirect, send_file
 import json
 import os
 from werkzeug.utils import secure_filename
 
 main = Blueprint('main', __name__)
+
+@main.route('/static/<path:filename>')
+def serve_static(filename):
+    root_dir = os.path.dirname(os.getcwd())
+    return send_file(os.path.join(root_dir, 'static', filename), 
+                     max_age=2592000)  # Cache for 30 days
+
 
 def iterative_reformatting(data):
     if not data:
@@ -141,6 +148,17 @@ def get_filter_options():
 def about():
     return render_template('about.html')
 
+@main.route('/check-session', methods=['POST'])
+def check_session():
+    session_name = request.json['session_name']
+    session_folder = os.path.join(current_app.root_path, 'human_evaluation_sessions', session_name)
+    settings_file = os.path.join(session_folder, 'annotation_settings.json')
+    
+    if os.path.exists(settings_file):
+        return jsonify({'exists': True})
+    else:
+        return jsonify({'exists': False})
+
 @main.route('/human-evaluation', methods=['GET', 'POST'])
 def human_evaluation():
     if request.method == 'POST':
@@ -176,9 +194,6 @@ def human_evaluation():
         return redirect(url_for('main.annotation_session', session_name=session_name))
     
     return render_template('human_evaluation.html')
-
-import os
-import json
 
 @main.route('/annotation-session/<session_name>')
 def annotation_session(session_name):
